@@ -1,0 +1,28 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.*
+.pytest_cache/
+.coverage
+
+# Local runtime databases, caches, logs, and IDE/agent state
+*.db
+*.db-wal
+*.db-shm
+*.sqlite*
+*.bak
+*.log
+*.tmp
+.wrangler/
+.zcode/
+image_cache/
+
+# Downloaded source datasets and generated outputs
+/data/raw/*
+!/data/raw/.gitkeep
+/data/processed/*
+!/data/processed/.gitkeep
+/artifacts/*
+!/artifacts/.gitkeep
+

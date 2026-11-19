@@ -1,0 +1,6 @@
+[project]
+name = "personality-movie-recommender"
+version = "0.1.0"
+description = "Lightweight foundation for a personality-aware movie recommender"
+requires-python = ">=3.10"
+dependencies = []

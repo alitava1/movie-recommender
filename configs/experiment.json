@@ -1,0 +1,23 @@
+{
+  "dataset": "ml-100k",
+  "evaluation": {
+    "k": 10,
+    "relevant_threshold": 4.0
+  },
+  "nested": {
+    "inner_validation_fraction": 0.2,
+    "selection_k": 10,
+    "seed": 2026,
+    "bootstrap_resamples": 2000,
+    "confidence": 0.95,
+    "cf_grid": {
+      "neighbors": [20, 50, 100],
+      "prediction_shrinkage": [10.0, 100.0, 300.0]
+    },
+    "hybrid_weight_grid": [
+      {"cf": 0.5, "content": 0.3, "popularity": 0.2},
+      {"cf": 0.6, "content": 0.2, "popularity": 0.2},
+      {"cf": 0.4, "content": 0.4, "popularity": 0.2}
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "popularity": {
+    "prior_count": 10.0
+  },
+  "cf": {
+    "neighbors": 50,
+    "shrinkage": 10.0,
+    "prediction_shrinkage": 100.0
+  },
+  "hybrid_weights": {
+    "cf": 0.5,
+    "content": 0.3,
+    "popularity": 0.2
+  }
+}

@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Movie Recommender — Reel Archive</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <button class="brand" onclick="setView('discover')" aria-label="Reel Archive Home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-text">
+          <span class="brand-title">Movie Recommender</span>
+          <span class="brand-sub">REEL ARCHIVE</span>
+        </span>
+      </button>
+
+      <nav class="nav-links" aria-label="Primary navigation">
+        <button class="nav-btn active" data-view="discover" onclick="setView('discover')">Discover</button>
+        <button class="nav-btn" data-view="foryou" onclick="setView('foryou')">For You</button>
+        <button class="nav-btn" data-view="explore" onclick="setView('explore')">Explore</button>
+        <button class="nav-btn" data-view="watchlist" onclick="setView('watchlist')">Watchlist <span class="count-badge" id="navWatchCount">0</span></button>
+        <button class="nav-btn" data-view="ratings" onclick="setView('ratings')">My Ratings <span class="count-badge" id="navRateCount">0</span></button>
+        <button class="nav-btn" data-view="profile" onclick="setView('profile')">Profile &amp; Settings</button>
+      </nav>
+
+      <div class="topbar-actions">
+        <form class="search-form" onsubmit="event.preventDefault(); runSearch();">
+          <svg class="icon-svg search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <input id="q" type="search" placeholder="Search films…" aria-label="Search films" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();runSearch();}">
+          <kbd class="kbd-hint" aria-hidden="true">/</kbd>
+        </form>
+        <div class="user-pill">
+          <label for="user" class="sr-only">Active user</label>
+          <select id="user" onchange="switchUser()" aria-label="Active user"></select>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <!-- DISCOVER VIEW -->
+    <section id="view-discover" class="view active">
+      <div id="heroSlot" class="hero-slot"></div>
+
+      <section class="editorial-section">
+        <div class="section-head">
+          <div>
+            <span class="kicker">Hybrid Ranking · Phase 10 three_w3</span>
+            <h2>Recommendations for you</h2>
+          </div>
+          <div class="section-actions">
+            <span id="recModeTag" class="meta-chip">0.4 CF · 0.2 Pop · 0.4 Content</span>
+            <button class="btn btn-ghost" onclick="refreshAll()">Refresh</button>
+            <button class="btn btn-link" onclick="setView('foryou')">View all</button>
+          </div>
+        </div>
+        <div id="recColdNotice" class="notice hidden"></div>
+        <div id="recList" class="ranked-shelf"></div>
+      </section>
+
+      <section id="becauseSection" class="editorial-section hidden">
+        <div class="section-head">
+          <div>
+            <span class="kicker">Content Similarity · TF-IDF</span>
+            <h2 id="becauseTitle">Because you liked…</h2>
+          </div>
+        </div>
+        <div id="becauseList" class="poster-rail"></div>
+      </section>
+
+      <section class="editorial-section">
+        <div class="section-head">
+          <div>
+            <span class="kicker">Community Canon</span>
+            <h2>Popular among film fans</h2>
+          </div>
+          <button class="btn btn-link" onclick="setView('explore')">Browse catalog</button>
+        </div>
+        <div id="popularList" class="poster-rail"></div>
+      </section>
+
+      <section id="acclaimedSection" class="editorial-section hidden">
+        <div class="section-head">
+          <div>
+            <span class="kicker">Highest Rated · Minimum 20 Votes</span>
+            <h2>Critically acclaimed</h2>
+          </div>
+          <button class="btn btn-link" onclick="explorePreset('highest_rated')">See top rated</button>
+        </div>
+        <div id="acclaimedList" class="poster-rail"></div>
+      </section>
+
+      <section id="recentSection" class="editorial-section hidden">
+        <div class="section-head">
+          <div>
+            <span class="kicker">Latest Catalog Years</span>
+            <h2>Recently released in archive</h2>
+          </div>
+          <button class="btn btn-link" onclick="explorePreset('year_desc')">See newest</button>
+        </div>
+        <div id="recentList" class="poster-rail"></div>
+      </section>
+
+      <section id="gemsSection" class="editorial-section hidden">
+        <div class="section-head">
+          <div>
+            <span class="kicker">High Rating · Smaller Audience</span>
+            <h2>Hidden gems</h2>
+          </div>
+        </div>
+        <div id="gemsList" class="gems-ledger"></div>
+      </section>
+    </section>
+
+    <!-- FOR YOU VIEW -->
+    <section id="view-foryou" class="view">
+      <div class="page-header">
+        <span class="kicker">Personalized Curation</span>
+        <h1>For You</h1>
+        <p class="lead">Ranked over the 200-item candidate pool using the Phase 10 hybrid weights (0.40 collaborative, 0.20 popularity, 0.40 TF-IDF content). Every score shows its actual active components.</p>
+      </div>
+      <div id="forYouList" class="ledger-list"></div>
+    </section>
+
+    <!-- EXPLORE / SEARCH VIEW -->
+    <section id="view-explore" class="view">
+      <div class="page-header">
+        <span class="kicker" id="exploreKicker">Full Catalog</span>
+        <h1 id="exploreHeading">Explore Films</h1>
+      </div>
+      <div id="genreBar" class="genre-bar" role="tablist" aria-label="Filter by genre"></div>
+      <div class="filter-bar">
+        <label class="filter-field">
+          <span>Sort</span>
+          <select id="exploreSort" onchange="applyExploreFilters()">
+            <option value="popular">Most Popular</option>
+            <option value="highest_rated">Highest Rated</option>
+            <option value="year_desc">Newest First</option>
+            <option value="year_asc">Oldest First</option>
+            <option value="title">Title A–Z</option>
+          </select>
+        </label>
+        <label class="filter-field">
+          <span>Year from</span>
+          <input id="yearMin" type="number" min="1900" max="2030" placeholder="e.g. 1980" onchange="applyExploreFilters()">
+        </label>
+        <label class="filter-field">
+          <span>Year to</span>
+          <input id="yearMax" type="number" min="1900" max="2030" placeholder="e.g. 1999" onchange="applyExploreFilters()">
+        </label>
+        <label class="filter-field">
+          <span>Min rating</span>
+          <select id="minRating" onchange="applyExploreFilters()">
+            <option value="">Any rating</option>
+            <option value="3.0">★ 3.0+</option>
+            <option value="3.5">★ 3.5+</option>
+            <option value="4.0">★ 4.0+</option>
+          </select>
+        </label>
+        <button class="btn btn-ghost" onclick="resetExploreFilters()">Reset filters</button>
+      </div>
+      <div id="exploreLoading" class="muted hidden">Loading films…</div>
+      <div id="searchStatus" class="search-status hidden"></div>
+      <div id="browseList" class="poster-grid"></div>
+      <div id="paginationBar" class="pagination-bar">
+        <button id="prevPage" class="btn btn-ghost" onclick="changePage(-1)">Previous</button>
+        <span id="pageInfo" class="mono muted"></span>
+        <button id="nextPage" class="btn btn-ghost" onclick="changePage(1)">Next</button>
+      </div>
+    </section>
+
+    <!-- WATCHLIST VIEW -->
+    <section id="view-watchlist" class="view">
+      <div class="page-header">
+        <span class="kicker">Saved Queue</span>
+        <h1>Watchlist</h1>
+        <p class="lead">Films bookmarked for later viewing. Persisted locally per account.</p>
+      </div>
+      <div id="watchlistEmpty" class="empty-state hidden">
+        <p>Your watchlist is empty.</p>
+        <button class="btn btn-primary" onclick="setView('discover')">Return to Discover</button>
+      </div>
+      <div id="watchlistGrid" class="poster-grid"></div>
+    </section>
+
+    <!-- MY RATINGS VIEW -->
+    <section id="view-ratings" class="view">
+      <div class="page-header">
+        <span class="kicker">Interaction Ledger</span>
+        <h1>My Ratings</h1>
+      </div>
+      <div id="ratingStats" class="stats-strip"></div>
+      <div class="filter-bar" id="ratingsFilterBar">
+        <label class="filter-field">
+          <span>Sort</span>
+          <select id="ratingsSort" onchange="renderMyRatings()">
+            <option value="recent">Most Recent</option>
+            <option value="highest">Highest Rated</option>
+            <option value="lowest">Lowest Rated</option>
+            <option value="title">Title A–Z</option>
+          </select>
+        </label>
+        <label class="filter-field">
+          <span>Filter</span>
+          <select id="ratingsFilter" onchange="renderMyRatings()">
+            <option value="all">All Rated</option>
+            <option value="liked">Liked / ≥ 4.0</option>
+            <option value="disliked">Disliked / ≤ 2.0</option>
+          </select>
+        </label>
+      </div>
+      <div id="ratingsEmpty" class="empty-state hidden">
+        <p>You haven't rated any films yet. Rate a few titles to unlock collaborative and content-based recommendations.</p>
+        <button class="btn btn-primary" onclick="setView('explore')">Explore Catalog</button>
+      </div>
+      <div id="ratingsList" class="history-list"></div>
+    </section>
+
+    <!-- PROFILE & SETTINGS VIEW (must stay AFTER "Recommendations for you" in document order) -->
+    <section id="view-profile" class="view">
+      <div class="page-header">
+        <span class="kicker">Account &amp; Preferences</span>
+        <h1>Profile &amp; Settings</h1>
+      </div>
+
+      <div class="settings-layout">
+        <div class="settings-panel">
+          <h2>Account management</h2>
+          <p class="muted">Interaction histories, watchlists, and optional preference settings are isolated per user in local SQLite storage.</p>
+          <div id="accountSummary" class="account-meta"></div>
+          <div id="metadataSummary" class="account-meta"></div>
+          <div class="field-row">
+            <input id="nu" type="text" placeholder="New username…" aria-label="New username">
+            <button class="btn btn-primary" onclick="createUser()">Create account</button>
+          </div>
+          <div class="danger-zone">
+            <div>
+              <strong>Reset user history</strong>
+              <p class="muted">Deletes all ratings, likes, watchlist entries, and preference settings for the active account.</p>
+            </div>
+            <button class="btn btn-danger" onclick="resetUser()">Reset my data</button>
+          </div>
+        </div>
+
+        <div class="settings-panel" id="pers">
+          <div class="panel-header-row">
+            <h2>Experimental personality settings</h2>
+            <span class="status-badge">Disabled by default</span>
+          </div>
+          <p class="muted">
+            Self-reported experimental Big Five profile (1–7 scale; 1 = low, 7 = high). Not a clinically validated assessment.
+            <strong>Phase 13 empirical validation found no measurable accuracy benefit</strong> over the standard hybrid engine (warm and simulated-sparse validation selected weight 0.0; personality-only was significantly worse than popularity at zero history). Standard recommendations never read this section.
+          </p>
+          <div id="persStatus" class="notice"></div>
+          <div class="trait-grid">
+            <label class="trait-field">
+              <span>Openness</span>
+              <input id="p_openness" type="number" min="1" max="7" step="0.5" value="4">
+            </label>
+            <label class="trait-field">
+              <span>Conscientiousness</span>
+              <input id="p_conscientiousness" type="number" min="1" max="7" step="0.5" value="4">
+            </label>
+            <label class="trait-field">
+              <span>Extraversion</span>
+              <input id="p_extraversion" type="number" min="1" max="7" step="0.5" value="4">
+            </label>
+            <label class="trait-field">
+              <span>Agreeableness</span>
+              <input id="p_agreeableness" type="number" min="1" max="7" step="0.5" value="4">
+            </label>
+            <label class="trait-field">
+              <span>Neuroticism</span>
+              <input id="p_neuroticism" type="number" min="1" max="7" step="0.5" value="4">
+            </label>
+            <label class="trait-field">
+              <span>Blend weight (0–1, unvalidated)</span>
+              <input id="p_weight" type="number" min="0" max="1" step="0.05" value="0.15">
+            </label>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="saveProfile()">Save profile</button>
+            <button class="btn btn-ghost" onclick="deleteProfile()">Delete profile</button>
+            <button class="btn btn-secondary" onclick="expRecs()">Run experimental ranking</button>
+          </div>
+          <div id="expRecList" class="exp-results"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MOBILE BOTTOM NAV -->
+  <nav class="mobile-nav" aria-label="Mobile navigation">
+    <button class="mnav-btn active" data-view="discover" onclick="setView('discover')">Discover</button>
+    <button class="mnav-btn" data-view="foryou" onclick="setView('foryou')">For You</button>
+    <button class="mnav-btn" data-view="explore" onclick="setView('explore')">Explore</button>
+    <button class="mnav-btn" data-view="watchlist" onclick="setView('watchlist')">Watchlist</button>
+    <button class="mnav-btn" data-view="ratings" onclick="setView('ratings')">Ratings</button>
+    <button class="mnav-btn" data-view="profile" onclick="setView('profile')">Profile</button>
+  </nav>
+
+  <!-- MOVIE DETAIL MODAL -->
+  <div id="detailModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle" onclick="if(event.target===this)closeModal()">
+    <div class="modal-sheet">
+      <button class="modal-close" onclick="closeModal()" aria-label="Close details">
+        <svg viewBox="0 0 24 24" class="icon-svg"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+      <div id="detailBody"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
